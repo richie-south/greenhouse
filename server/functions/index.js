@@ -3,11 +3,18 @@ const admin = require('firebase-admin')
 
 admin.initializeApp()
 
+function stringToBoolean (str) {
+  return str === 'true'
+}
+
 exports.createLogEntry = functions.https.onRequest((req, res) => {
   const {
     temprature,
     humidity,
-    soilmoisture
+    soilmoisture,
+    isFanOn,
+    isWaterValveOpen,
+    isTopHatchOpen,
   } = req.query
 
   admin
@@ -17,6 +24,9 @@ exports.createLogEntry = functions.https.onRequest((req, res) => {
       temprature: Number(temprature),
       humidity: Number(humidity),
       soilMoisture: soilmoisture,
+      wasFanOn: stringToBoolean(isFanOn),
+      wasWaterValveOpen: stringToBoolean(isWaterValveOpen),
+      wasTopHatchOpen: stringToBoolean(isTopHatchOpen),
       timestamp: new Date().toISOString()
     })
     .then(() =>
