@@ -1,3 +1,4 @@
+#include <dht.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
@@ -7,7 +8,6 @@
 
 MDNSResponder mdns;
 ESP8266WebServer server(80);
-// WIFI
 const char* ssid     = "";
 const char* password = "";
 HTTPClient http;
@@ -17,8 +17,12 @@ int valveServoPos;
 int valveServoPin = 12;
 Servo valveServo;
 
-// fan / relay pin
+// fan
 int fanPin = 13;
+
+// humidity and temperature sensor
+dht DHT;
+int humidityTemperaturePin = 14;
 
 void setup() {
   Serial.begin(74880);
@@ -40,7 +44,6 @@ void setup() {
   server.on("/", []() {
     Serial.println("hello world");
     server.send(200, "text/html", "<p>Hello World</p>");
-    sendSensorDataToServer(10, 11, 12);
   });
 
   server.on("/start-fan", []() {
@@ -63,43 +66,59 @@ void setup() {
     closeValve();
   });
 
+  server.on("/read", []() {
+    readTemperatureAndHumidity();
+    delay(100);
+    server.send(200, "text/html", "<p>temperature: " + String(DHT.temperature) + " humidity: " + String(DHT.humidity) + "</p>");
+    sendSensorDataToServer(String(DHT.temperature), String(DHT.humidity), 0);
+  });
+
   server.begin();
   pinMode(fanPin, OUTPUT);
-  digitalWrite(fanPin, HIGH);
+  digitalWrite(fanPin, LOW);
+  closeValve();76
 }
 
 void startFan () {
-  digitalWrite(fanPin, LOW);
+  digitalWrite(fanPin, HIGH);
 }
 
 void stopFan () {
-  digitalWrite(fanPin, HIGH);
+  digitalWrite(fanPin, LOW);
 }
 
 void openValve () {
   valveServo.attach(valveServoPin);
+  delay(100);
   for (valveServoPos = 80; valveServoPos >= 5; valveServoPos -= 1) {
     valveServo.write(valveServoPos);
     delay(30);
   }
+  delay(100);
   valveServo.detach();
 }
 
 void closeValve () {
   valveServo.attach(valveServoPin);
+  delay(100);
   for (valveServoPos = 5; valveServoPos <= 80; valveServoPos += 1) {
     valveServo.write(valveServoPos);
     delay(50);
   }
+  delay(100);
   valveServo.detach();
 }
 
-void sendSensorDataToServer (int temprature, int humidity, int soilmoisture) {
+void readTemperatureAndHumidity() {
+  int chk = DHT.read11(humidityTemperaturePin);
+}
+
+void sendSensorDataToServer (String temprature, String humidity, int soilmoisture) {
   if (WiFi.status() == WL_CONNECTED) {
     http.begin(
       "URL" +
-      String(temprature) +
-      "&humidity=" + String(humidity) +
+      temprature +
+      "&humidity=" + humidity +
       "&soilmoisture=" + String(soilmoisture),
       "imaginarykey"
     );
