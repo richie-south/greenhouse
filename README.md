@@ -11,7 +11,7 @@ Should gather and send sensor data, temprature, humidity and soil moisture
 
 - [ ] startup: fetch settings from cloud fn
 - [ ] startup/continuously: check local sensors temprature, humidity, soil moisture
-- [ ] continuously: (every 10min) send sensor data to firebase cloud fn
+- [x] continuously: (every 15min) send sensor data to firebase cloud fn
 - [x] open close watering valve
 - [x] activate fan for air flow
 - [ ] activate servo for opening / closing top hatch for air flow
