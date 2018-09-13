@@ -24,6 +24,11 @@ int fanPin = 13;
 dht DHT;
 int humidityTemperaturePin = 14;
 
+// local state
+boolean isFanOn = false;
+boolean isWaterValveOpen = false;
+boolean isTopHatchOpen = false;
+
 void setup() {
   Serial.begin(74880);
   WiFi.begin(ssid, password);
@@ -57,33 +62,41 @@ void setup() {
   });
 
   server.on("/start-watering", []() {
-    server.send(200, "text/html", "<p>start fan</p>");
+    server.send(200, "text/html", "<p>start watering</p>");
     openValve();
   });
 
   server.on("/stop-watering", []() {
-    server.send(200, "text/html", "<p>stop fan</p>");
+    server.send(200, "text/html", "<p>stop watering</p>");
     closeValve();
   });
 
-  server.on("/read", []() {
+  server.on("/read-send", []() {
     readTemperatureAndHumidity();
     delay(100);
     server.send(200, "text/html", "<p>temperature: " + String(DHT.temperature) + " humidity: " + String(DHT.humidity) + "</p>");
     sendSensorDataToServer(String(DHT.temperature), String(DHT.humidity), 0);
   });
 
+  server.on("/read", []() {
+    readTemperatureAndHumidity();
+    delay(100);
+    server.send(200, "text/html", "<p>temperature: " + String(DHT.temperature) + " humidity: " + String(DHT.humidity) + "</p>");
+  });
+
   server.begin();
   pinMode(fanPin, OUTPUT);
   digitalWrite(fanPin, LOW);
-  closeValve();76
+  closeValve();
 }
 
 void startFan () {
+  isFanOn = true;
   digitalWrite(fanPin, HIGH);
 }
 
 void stopFan () {
+  isFanOn = false;
   digitalWrite(fanPin, LOW);
 }
 
@@ -94,17 +107,20 @@ void openValve () {
     valveServo.write(valveServoPos);
     delay(30);
   }
+  isWaterValveOpen = true;
   delay(100);
   valveServo.detach();
 }
 
 void closeValve () {
   valveServo.attach(valveServoPin);
+  isWaterValveOpen = true;
   delay(100);
   for (valveServoPos = 5; valveServoPos <= 80; valveServoPos += 1) {
     valveServo.write(valveServoPos);
     delay(50);
   }
+  isWaterValveOpen = false;
   delay(100);
   valveServo.detach();
 }
@@ -119,7 +135,10 @@ void sendSensorDataToServer (String temprature, String humidity, int soilmoistur
       "URL" +
       temprature +
       "&humidity=" + humidity +
-      "&soilmoisture=" + String(soilmoisture),
+      "&soilmoisture=" + String(soilmoisture) +
+      "&isFanOn=" + (isFanOn ? "true" : "false") +
+      "&isWaterValveOpen=" + (isWaterValveOpen ? "true" : "false") +
+      "&isTopHatchOpen=" + (isTopHatchOpen ? "true" : "false"),
       "imaginarykey"
     );
 
@@ -134,6 +153,18 @@ void sendSensorDataToServer (String temprature, String humidity, int soilmoistur
   }
 }
 
+
+#define MIN (1000UL * 60 * 15)
+unsigned long rolltime = millis() + MIN;
+
 void loop() {
   server.handleClient();
+
+  if((long)(millis() - rolltime) >= 0) {
+    //  Do your five minute roll stuff here
+    rolltime += MIN;
+    readTemperatureAndHumidity();
+    delay(100);
+    sendSensorDataToServer(String(DHT.temperature), String(DHT.humidity), 0);
+  }
 }
