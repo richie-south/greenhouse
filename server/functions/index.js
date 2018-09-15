@@ -12,6 +12,7 @@ exports.createLogEntry = functions.https.onRequest((req, res) => {
     temprature,
     humidity,
     soilmoisture,
+    eventType,
     isFanOn,
     isWaterValveOpen,
     isTopHatchOpen,
@@ -21,6 +22,7 @@ exports.createLogEntry = functions.https.onRequest((req, res) => {
     .database()
     .ref('logs')
     .push({
+      eventType,
       temprature: Number(temprature),
       humidity: Number(humidity),
       soilMoisture: soilmoisture,
