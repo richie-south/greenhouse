@@ -1,19 +1,32 @@
-import React, { Component } from 'react'
+import React, {Component} from 'react'
+import {connect} from 'react-redux'
+import {fetchLogs} from './lib/actions/logs'
 
 class App extends Component {
+
+  componentDidMount() {
+    console.log('props', this.props)
+    this.props.fetchLogs()
+  }
+
   render() {
     return (
       <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h1 className="App-title">Welcome to React</h1>
-        </header>
-        <p className="App-intro">
-          To get started, edit <code>src/App.js</code> and save to reload.
-        </p>
       </div>
     )
   }
 }
 
-export default App
+const mapStateToProps = (state) => {
+  return {
+    logs: state.logs
+  }
+}
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    fetchLogs: () => dispatch(fetchLogs())
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(App)
