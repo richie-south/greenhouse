@@ -5,8 +5,10 @@ export const fetchLogsAction = (payload) => ({
   payload,
 })
 
+
 export const fetchLogs = () => async dispatch => {
   logsRef.on("value", snapshot => {
+    const values = Object.values(snapshot.val())
     dispatch(fetchLogsAction(snapshot.val()))
   })
 }
